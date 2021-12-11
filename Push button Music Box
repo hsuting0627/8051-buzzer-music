@@ -1,0 +1,51 @@
+
+#include <reg51.h>
+#define PB1 INT0
+#define PB2 INT1
+sbit LED = P1^0;
+sbit  buzzer = P3^7;                                                                    // ????? 
+unsigned char  i=0;                                                                     // ???? 
+unsigned char  tone_H, tone_L;                                                          // ??????? 
+unsigned int prePB1 = 1;  
+void  delay1(unsigned int);                                                          // ?????? 
+unsigned char code song[]={1, 1, 5, 5, 6, 6, 5, 4, 4, 3,3, 2,2,1, 15};            // 556517 556521 5553176 443121
+unsigned int code beat[]={500,500,500,500,500,500,1000, 500,500,500,500,500,500,1000};                  // ?? 
+unsigned int code tone[]={0, 1762, 1569, 1398,1319,1175,1047,933,881};                    // Re(4) Mi (5) Fa(6) So(7) La(8)
+
+// ========??? ===============
+void main()
+{ buzzer=1;                                                                             // ?????? 
+  IE=0x82;                                                                              // ??Timer 0
+  TMOD=0x01;
+	LED = ~PB1;
+  if (PB1 == 0 && PB2 == 0) {
+	delay1(100);
+		if (PB1 == 1 && PB2 == 1)
+			while(song[i]!=15)                                                                    // while???? 
+       {
+				 TH0=tone_H=(65536-tone[song[i]])/256;                                          // ???????????? 
+         TL0= tone_L=(65536-tone[song[i]]) % 256;                                       // ???????????? 
+         TR0=1;                                                                         // ??Timer 0
+         delay1(beat[i]);                                                             // ???? 
+         i++;                                                                           // ???? 
+         TR0=0;                                                                         // ??T0???? 
+         buzzer=1;                                                                      // ?????? 
+       } 
+	delay1(10);
+}
+     }                                                                                   // ????? 
+//====Timer 0?????==================
+void tone_timer(void) interrupt 1                                                       // Timer 0??????? 
+{ TH0=tone_H;                                                                           // ?????????? 
+  TL0=tone_L;                                                                           // ?????????? 
+  buzzer=~buzzer;                                                                       // ??????? 
+}                                                                                       // ??????? 
+
+//====????==================
+void delay1(unsigned int x)                                                          // ?????? 
+{ unsigned int  i,j;                                                                 // ???? 
+  for (i=0;i<x;i++)
+{
+      for (j=0;j<90;j++);                                                               // j?? 
+}
+}                                                                                       // ?????? 
