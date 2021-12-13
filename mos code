@@ -1,0 +1,210 @@
+#include "REGX51.h"
+#include "delay.h"
+#include "7seg.h"
+
+#define Hall_In P2_4
+#define but1 INT0
+#define but2 INT1
+#define but3 P2_0
+unsigned char received_data;
+unsigned char send_data;
+unsigned char send_flag=0;
+int hall_cnt = 0;								// Count the # of Hall sensor activations
+int en = 0, i = 0,s = 0, cod = 0 , n = 0;
+int ans = 0;
+unsigned char id[] = {9,2,2,1,6,0,9,0,1};
+void main()
+{
+
+	unsigned int prebut1,prebut2;    		//debounce
+	but1 = 1;
+	but2 = 1;
+	// Initialization
+	TMOD = 0x01;									// Set Timer 1 to  mode 0 & T imer 0 mode 1. (16-bit timer)
+	TH0 = (65536-1000) / 256;						// Load initial higher 8 bits into Timer 0
+	TL0 = (65536-1000) % 256;						// Load initial lower 8 bits into Timer 0
+	ET0 = 1;										// Enable Timer 0 interrupt
+	EA = 1;											// Enable all interrupt
+	TR0 = 1;										// Start Timer 0
+  Hall_In = 1;									// Initialize Hall sensor signal (deactivated)
+	Initial();
+	while(1) {
+		if((but1 == 0) && (prebut1 == 1)) {
+			delay_ms(10);
+			if(but1 == 0) {
+         P1 = ~P1;
+				 delay_ms(500);
+				 P1 = ~P1;
+				 delay_ms(500);
+				 P1 = ~P1;
+			 	 delay_ms(500);
+				 P1 = ~P1;
+				 delay_ms(500);
+				 P1 = ~P1;
+				 delay_ms(500);
+				 P1 = ~P1;
+				 en = 1;
+			}
+		}
+		if ((but2 == 0) && (prebut2 == 1)) {
+			delay_ms(10);
+			if(but2 == 0) {
+				  send_data = n;
+					send_flag = 1;
+			}
+		}
+		if (en == 1 && Hall_In != 0 && (cod == 0xe1 || cod == 0x81)){
+			en++;
+			if (cod == 0xe1) ans = ans + 0x01;
+			else if (cod == 0x81) ans = ans + 0x00;
+		}
+		if (en == 2 && Hall_In != 0 && (cod == 0xe2 || cod == 0x82)){
+			en++;
+			if (cod == 0xe2) ans = ans + 0x02;
+			else if (cod == 0x82) ans = ans + 0x00;
+		}
+		if (en == 3 && Hall_In != 0 && (cod == 0xe4 || cod == 0x84)){
+			en++;
+			if (cod == 0xe4) ans = ans + 0x04;
+			else if (cod == 0x84) ans = ans + 0x00;
+		} 
+	  if (en == 4 && Hall_In != 0 && (cod == 0xe8 || cod == 0x88)){
+			en++;
+			if (cod == 0xe8) ans = ans + 0x08;
+			else if (cod == 0x88) ans = ans + 0x00;
+		} 
+	  if (en == 5 && Hall_In != 0 && (cod == 0xf0 || cod == 0x90)){
+			en++;
+			if (cod == 0xf0) ans = ans + 0x10;
+			else if (cod == 0x90) ans = ans + 0x00;
+		} 
+		P1 = ~cod;
+		if (en == 6) {
+	  	if(ans == 0x0f) n = 1;
+    	else if(ans == 0x07) n = 2;
+	    else if(ans == 0x03) n = 3;
+	    else if(ans == 0x01) n = 4;
+	    else if(ans == 0x00) n = 5;
+    	else if(ans == 0x10) n = 6;
+	    else if(ans == 0x18) n = 7;
+    	else if(ans == 0x1c) n = 8;
+	    else if(ans == 0x1e) n = 9;
+    	else if(ans == 0x1f) n = 0;
+	    else n = 11;
+			Write7219(1,n);
+	 IE = 0x90;     
+   SCON = 0x50;     
+   TMOD = 0x20;       
+   TH1 = 250;     
+   TR1 = 1;
+		}
+		prebut1 = but1;
+    prebut2 = but2;
+		delay_ms(10);
+		if(send_flag==1) {
+		  SBUF = send_data;	
+		  send_flag = 0;
+		} 
+		if ( but3 == 0) {
+			 Write7219(8, id[0]);
+			 delay_ms(1000);
+			Write7219(8, id[1]);
+			Write7219(7, id[0]);
+			delay_ms(1000);
+						Write7219(8, id[2]);
+			Write7219(7, id[1]);
+						Write7219(6, id[0]);
+						delay_ms(1000);
+			Write7219(8, id[3]);
+						Write7219(7, id[2]);
+			Write7219(6, id[1]);
+						Write7219(5, id[0]);
+						delay_ms(1000);
+			Write7219(8, id[4]);
+			Write7219(7, id[3]);
+						Write7219(6, id[2]);
+			Write7219(5, id[1]);
+						Write7219(4, id[0]);
+						delay_ms(1000);
+			Write7219(8, id[5]);
+			Write7219(7, id[4]);
+			Write7219(6, id[3]);
+						Write7219(5, id[2]);
+			Write7219(4, id[1]);
+						Write7219(3, id[0]);
+						delay_ms(1000);
+			Write7219(8, id[6]);
+			Write7219(7, id[5]);
+			Write7219(6, id[4]);
+						Write7219(5, id[3]);
+			Write7219(4, id[2]);
+						Write7219(3, id[1]);
+						Write7219(2, id[0]);
+						delay_ms(1000);
+						Write7219(8, id[7]);
+			Write7219(7, id[6]);
+			Write7219(6, id[5]);
+			Write7219(5, id[4]);
+						Write7219(4, id[3]);
+			Write7219(3, id[2]);
+						Write7219(2, id[1]);
+						Write7219(1, id[0]);
+								delay_ms(1000);
+								Write7219(8, id[8]);
+						Write7219(7, id[7]);
+			Write7219(6, id[6]);
+			Write7219(5, id[5]);
+			Write7219(4, id[4]);
+						Write7219(3, id[3]);
+			Write7219(2, id[2]);
+						Write7219(1, id[1]);
+		}
+			
+	}
+
+}
+
+
+
+
+void T0_isr(void) interrupt 1
+{
+	TH0 = (65536-1000) / 256;						// Reset initial higher 8 bits into Timer 0
+	TL0 = (65536-1000) % 256;						// Reset initial lower 8 bits into Timer 0
+	if(Hall_In == 0) {
+    	hall_cnt++;
+		if (en == 1)
+			if (hall_cnt > 2000) cod = 0xe1;
+			else if (hall_cnt > 0) cod = 0x81;
+		  else cod = 0x00;
+		else if (en == 2)
+			if (hall_cnt > 2000) cod = 0xe2;
+			else if (hall_cnt > 0) cod = 0x82;
+		  else cod = 0x00;
+		else if (en == 3)
+			if (hall_cnt > 2000) cod = 0xe4;
+			else if (hall_cnt > 0) cod = 0x84;
+		  else cod = 0x00;
+		else if (en == 4)
+			if (hall_cnt > 2000) cod = 0xe8;
+			else if (hall_cnt > 0) cod = 0x88;
+		  else cod = 0x00;
+		else if (en == 5)
+			if (hall_cnt > 2000) cod = 0xf0;
+			else if (hall_cnt > 0) cod = 0x90;
+		  else cod = 0x00;
+  }else hall_cnt = 0;
+}
+
+void uart_isr(void) interrupt 4
+{  
+
+    if (TI == 1) TI = 0;
+		
+		if (RI == 1) {
+       RI = 0;
+       received_data = SBUF;
+			 Write7219(8,received_data);
+			 id[9] = n;
+		} 
+}
